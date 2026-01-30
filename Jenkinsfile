@@ -6,20 +6,22 @@ pipeline {
         stage('Fetch artifacts') {
             steps {
                 cleanWs()
+                script {
+                    def projects = [
+                        'stamp-webservices-pipeline',
+                        'stamp-web-aurelia-pipeline',
+                        'stamp-web-vuejs-pipeline'
+                    ]
 
-                copyArtifacts(
-                    projectName: 'stamp-webservices-pipeline',
-                    selector: [$class: 'StatusBuildSelector', stable: false],
-                    filter: 'archive/*.tgz',
-                    target: 'upstream/stamp-webservices-pipeline'
-                )
-
-                copyArtifacts(
-                    projectName: 'stamp-web-vuejs-pipeline',
-                    selector: [$class: 'StatusBuildSelector', stable: false],
-                    filter: 'archive/*.tgz',
-                    target: 'upstream/stamp-web-vuejs-pipeline'
-                )
+                    projects.each { project ->
+                        copyArtifacts(
+                            projectName: project,
+                            selector: [$class: 'StatusBuildSelector', stable: false],
+                            filter: 'archive/*.tgz',
+                            target: 'upstream/${project}'
+                        )
+                    }
+                }
             }
         }
 
@@ -27,23 +29,25 @@ pipeline {
             steps {
                 sh '''
                 set -e
-
-                mkdir -p app
+                echo "Creating stamp-web base folder"
+                mkdir -p stamp-web
 
                 for dir in upstream/*; do
-                  for pkg in "$dir"/*.tgz; do
+                  for pkg in "$dir/archive"/*.tgz; do
                     echo "Unpacking $pkg"
                     tar \
                       --extract \
                       --gzip \
                       --file="$pkg" \
-                      --directory=app \
+                      --directory=stamp-web \
                       --strip-components=1 \
                       --exclude='config/application.json' \
                       --exclude='config/users.json' \
                       --exclude='config/exchange-rates.json'
                   done
                 done
+                echo "Moving dist resources to www static folder"
+                mv -rf stamp-web/dist/* stamp-web/www
                 '''
             }
         }
