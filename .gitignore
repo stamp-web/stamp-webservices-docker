@@ -1,0 +1,8 @@
+.idea
+config/application.*
+config/users.json
+config/exchange-rates.json
+logs
+temp
+.env
+stamp-web-*.tgz

@@ -1,0 +1,39 @@
+services:
+  stamp-webservices:
+    image: node:latest
+    container_name: stamp-webservices
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-9005}:${APP_PORT:-80}"  # external port configurable, default 9005
+    environment:
+      - APP_PORT=${APP_PORT:-80}            # internal port configurable
+      - DB_HOST=${DB_HOST:-host.docker.internal}  # host DB by default
+      - DB_PORT=${DB_PORT:-3306}                  # default MariaDB port
+      - DB_NAME=${DB_NAME:-mysql}
+      - NODE_ENV=${NODE_ENV:-production}
+      - REDIS_HOST=redis
+      - REDIS_PORT=${REDIS_PORT:-6379}
+    volumes:
+      - ${CONFIG_PATH:-./config}:/stamp-web/config    # mount configuration files
+      - ./stamp-web-${VERSION:-4.1.1}.tgz:/stamp-web/stamp-web.tgz                   # mount your tarball
+      - ./logs:/stamp-web/logs
+    working_dir: /stamp-web
+    command: >
+      sh -c "
+        cd /stamp-web &&
+        tar -xf stamp-web.tgz --exclude='config/application.json' &&
+        node app/server/server-manager.js --database ${DB_NAME:-mysql} --httpOnly --port ${APP_PORT:-80} --sql_logger trace > logs/server-manager-$(date +\"%FT%H%M%S\").log
+      "
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "${REDIS_PORT:-6379}:${REDIS_PORT:-6379}"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  redis_data: {}
