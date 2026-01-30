@@ -9,14 +9,14 @@ pipeline {
 
                 copyArtifacts(
                     projectName: 'stamp-webservices-pipeline',
-                    selector: lastSuccessful(),
+                    selector: [$class: 'StatusBuildSelector', stable: false],
                     filter: 'archive/*.tgz',
                     target: 'upstream/stamp-webservices-pipeline'
                 )
 
                 copyArtifacts(
                     projectName: 'stamp-web-vuejs-pipeline',
-                    selector: lastSuccessful(),
+                    selector: [$class: 'StatusBuildSelector', stable: false],
                     filter: 'archive/*.tgz',
                     target: 'upstream/stamp-web-vuejs-pipeline'
                 )
