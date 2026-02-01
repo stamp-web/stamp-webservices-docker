@@ -1,0 +1,40 @@
+# Start from the official Jenkins image
+FROM jenkins/jenkins:lts-jdk21
+
+# Switch to root to install packages
+USER root
+
+RUN apt-get update
+
+# Install Node.js (example for Node.js 24 LTS)
+RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
+    && apt-get install -y nodejs
+
+# Optionally install npm packages globally
+RUN npm install -g npm \
+    gulp \
+    rimraf \
+    au
+
+# Install Java 21
+RUN apt-get install -y --no-install-recommends openjdk-21-jdk-headless
+# Install font libraries not included in headless version
+RUN apt-get install -y --no-install-recommends libharfbuzz0b \
+    libfreetype6 \
+    fontconfig
+
+# Install useful applications to have in the container for diagnositics
+RUN apt-get install -y wget mariadb-client
+
+# Clean up the apt-get process
+RUN apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+ENV PATH="$JAVA_HOME/bin:$PATH"
+
+# Switch back to Jenkins user for security
+USER jenkins
+
+# Set default workdir for Jenkins (optional)
+WORKDIR /var/jenkins_home
