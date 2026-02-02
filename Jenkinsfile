@@ -89,6 +89,7 @@ pipeline {
                     VERSION=$(node -p "require('./stamp-web/package.json').version")
                     cd stamp-web
                     tar -cf ../stamp-web-${VERSION}.tgz *
+                    tar -cf ../stamp-web.tgz *
                 '''
             }
             post {
