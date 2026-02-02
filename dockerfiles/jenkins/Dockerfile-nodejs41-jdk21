@@ -14,7 +14,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
 RUN npm install -g npm \
     gulp \
     rimraf \
-    au
+    aurelia-cli
 
 # Install Java 21
 RUN apt-get install -y --no-install-recommends openjdk-21-jdk-headless
