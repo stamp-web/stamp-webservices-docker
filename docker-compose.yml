@@ -1,20 +1,25 @@
 services:
+
   stamp-webservices:
-    image: node:22-slim
+    image: docker.io/library/node:22-slim
     container_name: stamp-webservices
-    restart: no
-    network: "host"
-    ports:
-      - "${APP_PORT:-9005}:${APP_PORT:-80}"  # external port configurable, default 9005
+    restart: unless-stopped
+    network_mode: "host"
     environment:
-      - APP_PORT=${APP_PORT:-80}            # internal port configurable
-      - DB_HOST=${DB_HOST:-host.docker.internal}  # host DB by default
-      - DB_PORT=${DB_PORT:-3306}                  # default MariaDB port
+      - APP_PORT=9005                          # internal port configurable
+      - DB_HOST=localhost                      # host DB by default
+      - DB_PORT=3306                           # default MariaDB port
       - DB_NAME=${DB_NAME:-mysql}
-      - NODE_ENV=${NODE_ENV:-production}
-      - REDIS_HOST=redis
-      - REDIS_PORT=${REDIS_PORT:-6379}
+      - DEBUG="redis:* node server.js"
+      - SESSION_SECRET=STAMPWEB
+      - NODE_ENV=production
+      - REDIS_HOST=localhost
+      - REDIS_PORT=6379
+      - TZ=America/New_York
+    ports:
+      - "${APP_PORT:-9005}:${APP_PORT:-9005}"  # external port configurable, default 9005
     volumes:
+      - /etc/localtime:/etc/localtime:ro
       - ${CONFIG_PATH:-./config}:/tmp/config    # mount configuration files
       - ./stage/stamp-web.tgz:/stamp-web/stamp-web.tgz                   # mount your tarball
       - ./logs:/stamp-web/logs
@@ -24,18 +29,27 @@ services:
         cd /stamp-web &&
         mkdir -p /stamp-web/config &&
         tar -xf stamp-web.tgz --exclude='config/application.json' &&
-        cp -f /tmp/config /stamp-web/config &&
-        node app/server/server-manager.js --database ${DB_NAME:-mysql} --httpOnly --port ${APP_PORT:-80} --sql_logger trace > logs/server-manager-$(date +\"%FT%H%M%S\").log
+        cp -rf /tmp/config/* /stamp-web &&
+        node app/server/server-manager.js \
+        --database ${DB_NAME:-mysql} \
+        --httpOnly \
+        --cpu ${CPU_SIZE:-4} \
+        --port ${APP_PORT} \
+        --session_type=redis \
+        --session_secret=${SESSION_SECRET}
+        --sql_logger trace > logs/server-manager-$(date +\"%FT%H%M%S\").log
       "
     depends_on:
       - redis
 
   redis:
-    image: redis:7-alpine
+    image: docker.io/library/redis:7-alpine
     container_name: redis
-    ports:
-      - "${REDIS_PORT:-6379}:${REDIS_PORT:-6379}"
+    network_mode: "host"
+    environment:
+      - TZ=America/New_York
     volumes:
+      - /etc/localtime:/etc/localtime:ro
       - redis_data:/data
 
 volumes:

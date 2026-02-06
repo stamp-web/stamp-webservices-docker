@@ -6,6 +6,7 @@
         "CertificateFile": "PATH_TO_CERT",
         "CertificateKeyFile": "PATH_TO_KEY_FILE"
     },
+    "session_secret": "STAMPWEB",
     "authentication": "none",
     "database": "mysql",
     "databases": {

@@ -1,4 +1,3 @@
-# Start from the official Jenkins image
 FROM jenkins/jenkins:lts-jdk21
 
 # Switch to root to install packages
@@ -23,6 +22,8 @@ RUN apt-get install -y --no-install-recommends libharfbuzz0b \
     libfreetype6 \
     fontconfig
 
+RUN apt-get install -y --no-install-recommends maven
+
 # Install useful applications to have in the container for diagnositics
 RUN apt-get install -y wget mariadb-client
 
@@ -31,7 +32,13 @@ RUN apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+ENV MAVEN_HOME=/usr/share/maven
+ENV M2_HOME=/usr/share/maven
+ENV MAVEN_OPTS="-Dmaven.repo.local=/var/jenkins_home/.m2/repository"
 ENV PATH="$JAVA_HOME/bin:$PATH"
+
+RUN mkdir -p /var/jenkins_home/.m2/repository
+RUN chown -R jenkins:jenkins /var/jenkins_home/.m2/repository
 
 # Switch back to Jenkins user for security
 USER jenkins
