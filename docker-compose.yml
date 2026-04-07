@@ -2,9 +2,10 @@ services:
 
   stamp-webservices:
     image: docker.io/library/node:24-slim
+    user: "985:985"
+    network_mode: "host"
     container_name: stamp-webservices
     restart: unless-stopped
-    network_mode: "host"
     environment:
       - APP_PORT=9005                          # internal port configurable
       - DB_HOST=localhost                      # host DB by default
@@ -15,29 +16,31 @@ services:
       - NODE_ENV=production
       - REDIS_HOST=localhost
       - REDIS_PORT=6379
+      - CPU_SIZE=8
       - TZ=America/New_York
     ports:
       - "${APP_PORT:-9005}:${APP_PORT:-9005}"  # external port configurable, default 9005
     volumes:
       - /etc/localtime:/etc/localtime:ro
-      - ${CONFIG_PATH:-./config}:/tmp/config    # mount configuration files
-      - ./stage/stamp-web.tgz:/stamp-web/stamp-web.tgz                   # mount your tarball
-      - ./logs:/stamp-web/logs
+      - ${CONFIG_PATH:-./config}:/tmp/config:Z    # mount configuration files
+      - ./data:/stamp-web:Z
+      - ./stage/stamp-web.tgz:/stamp-web/stamp-web.tgz:Z                   # mount your tarball
+      - ./logs:/stamp-web/logs:Z
     working_dir: /stamp-web
-    command: >
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:9005/stamp-webservices/health', res => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    command:
       sh -c "
-        cd /stamp-web &&
-        mkdir -p /stamp-web/config &&
-        tar -xf stamp-web.tgz --exclude='config/application.json' &&
-        cp -rf /tmp/config/* /stamp-web &&
-        node app/server/server-manager.js \
-        --database ${DB_NAME:-mysql} \
-        --httpOnly \
-        --cpu ${CPU_SIZE:-4} \
-        --port ${APP_PORT} \
-        --session_type=redis \
-        --session_secret=${SESSION_SECRET}
-        --sql_logger trace > logs/server-manager-$(date +\"%FT%H%M%S\").log
+      cd /stamp-web &&
+      mkdir -p /stamp-web/config &&
+      tar -xf stamp-web.tgz --exclude='config/application.json' &&
+      cp -rf /tmp/config/* /stamp-web &&
+      cd logs && rm -rf * && cd .. &&
+      node app/server/server-manager.js --database ${DB_NAME:-mysql} --httpOnly --cpu ${CPU_SIZE:-6} --port ${APP_PORT} --session_type=redis --session_secret=${SESSION_SECRET} --server_logger debug --sql_logger debug
       "
     depends_on:
       - redis
@@ -50,7 +53,7 @@ services:
       - TZ=America/New_York
     volumes:
       - /etc/localtime:/etc/localtime:ro
-      - redis_data:/data
+      - redis_data:/data:Z
 
 volumes:
   redis_data: {}
