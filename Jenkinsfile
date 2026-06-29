@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     triggers {
-        upstream(upstreamProjects: 'stamp-web-vuejs,stamp-web-aurelia,stamp-webservices', threshold: hudson.model.Result.SUCCESS)
+        upstream(upstreamProjects: 'stamp-web-vuejs,stamp-web-aurelia,stamp-webservices,stamp-plateflaw-browser', threshold: hudson.model.Result.SUCCESS)
         githubPush()
     }
 
@@ -20,7 +20,8 @@ pipeline {
                     def projects = [
                         'stamp-webservices',
                         'stamp-web-aurelia',
-                        'stamp-web-vuejs'
+                        'stamp-web-vuejs',
+                        'stamp-plateflaw-browser'
                     ]
 
                     def buildNumbers = [:]
@@ -80,14 +81,17 @@ pipeline {
                 echo "Moving dist resources to www static folder"
                 mkdir -p stamp-web/www/aurelia
                 mkdir -p stamp-web/www/stamp-web
+                mkdir -p stamp-web/www/plate-flaws
 
                 cp -rf stamp-web/stamp-webservices/* stamp-web
                 cp -rf stamp-web/stamp-web-aurelia/dist/* stamp-web/www/aurelia
                 cp -rf stamp-web/stamp-web-vuejs/dist/* stamp-web/www/stamp-web
+                cp -rf stamp-web/stamp-plateflaw-browser/dist/* stamp-web/www/plate-flaws
 
                 rm -rf stamp-web/stamp-webservices
                 rm -rf stamp-web/stamp-web-vuejs
                 rm -rf stamp-web/stamp-web-aurelia
+                rm -rf stamp-web/stamp-plateflaw-browser
 
                 echo "Staging build-number.json into www folder"
                 cp -f build-number.json stamp-web/www/build-number.json
